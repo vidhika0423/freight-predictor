@@ -5,12 +5,9 @@ Predicts rate_per_mile as the historical average for that exact pickup->delivery
 lane (computed from training data only), falling back to the overall global average
 rate_per_mile for any lane never seen in training.
 
-This is deliberately simple - it exists purely to set a floor. Any real model
-must clearly beat this on the holdout set, or something is wrong.
 
-Evaluated on the Sep-Oct holdout split (the time-based split locked in earlier),
-using MAE and MAPE computed on the final dollar `posted_rate`, since that's what
-actually gets scored in the end - not on rate_per_mile directly.
+Evaluated on the Sep-Oct holdout split,
+using MAE and MAPE computed on the final dollar `posted_rate`
 """
 
 import numpy as np
@@ -71,12 +68,10 @@ if __name__ == "__main__":
 
     print(f"Train split (Jan-Aug): {len(train_split)} rows")
     print(f"Holdout split (Sep-Oct): {len(holdout_split)} rows")
-    print()
 
     baseline = fit_lane_baseline(train_split)
     print(f"Learned {len(baseline['lane_avg'])} lane averages from training data.")
     print(f"Global fallback average rate_per_mile: {baseline['global_avg']:.4f}")
-    print()
 
     predicted_rate = predict_lane_baseline(holdout_split, baseline)
     actual_rate = holdout_split["posted_rate"].to_numpy()
@@ -88,7 +83,7 @@ if __name__ == "__main__":
     print(f"MAE:  ${baseline_mae:,.2f}")
     print(f"MAPE: {baseline_mape:.2f}%")
 
-    # How many holdout lanes were actually unseen (had to use the fallback)?
+    # how many holdout lanes were actually unseen 
     lane_avg = baseline["lane_avg"]
     unseen_mask = ~holdout_split.apply(
         lambda row: (row["pickup"], row["delivery"]) in lane_avg, axis=1
