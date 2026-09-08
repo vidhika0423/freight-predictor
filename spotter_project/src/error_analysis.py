@@ -1,8 +1,7 @@
 """
 error_analysis.py
 
-Step 5: Error analysis on the Sep-Oct holdout set, using the final tuned XGBoost
-config locked in during Step 4.
+Error analysis on the Sep-Oct holdout set, using the final tuned XGBoost
 
 Breaks down MAE/MAPE by:
   - equipment type
@@ -10,11 +9,8 @@ Breaks down MAE/MAPE by:
     generalizes to lanes never seen in training, as intended)
   - price range (cheap / mid / expensive loads)
 
-Also produces a predicted-vs-actual scatter plot to visually check for systematic
-bias (e.g. consistently under-predicting expensive loads).
+produces a predicted-vs-actual scatter plot  ).
 
-Run BEFORE final retraining on full data - we need true labels to compare against,
-which we only have on the holdout set.
 """
 
 import numpy as np
@@ -25,7 +21,7 @@ from xgboost import XGBRegressor
 from clean_features import fit_transform, transform
 from baseline import time_based_split, mae, mape
 
-# Final tuned config locked in during Step 4
+# Final tuned config locked in 
 FINAL_XGB_PARAMS = dict(
     n_estimators=3000,
     learning_rate=0.03,
@@ -75,33 +71,32 @@ if __name__ == "__main__":
     print(f"=== Overall holdout performance ===")
     print(f"MAE: ${overall_mae:,.2f}   MAPE: {overall_mape:.2f}%\n")
 
-    # --- Breakdown 1: equipment type ---
-    print("=== By equipment type ===")
+    print("=== By equipment type ")
     equip_breakdown = breakdown_by_group(holdout_actual, predicted_rate,
                                           holdout_split["equipment"].to_numpy(), "equipment")
     print(equip_breakdown.to_string(index=False))
     print()
 
-    # --- Breakdown 2: seen vs unseen lane ---
+    # seen vs unseen lane 
     train_lanes = set(zip(train_split["pickup"], train_split["delivery"]))
     is_unseen = [
         (p, d) not in train_lanes
         for p, d in zip(holdout_split["pickup"], holdout_split["delivery"])
     ]
     lane_status = np.where(is_unseen, "unseen_lane", "seen_lane")
-    print("=== By seen-vs-unseen lane ===")
+    print(" By seen-vs-unseen lane ")
     lane_breakdown = breakdown_by_group(holdout_actual, predicted_rate, lane_status, "lane_status")
     print(lane_breakdown.to_string(index=False))
-    print()
+  
 
-    # --- Breakdown 3: price range (terciles based on actual rate) ---
+    #price range (terciles based on actual rate) 
     price_bucket = pd.qcut(holdout_actual, q=3, labels=["cheap", "mid", "expensive"])
-    print("=== By price range (terciles) ===")
+    print("By price range (terciles) ")
     price_breakdown = breakdown_by_group(holdout_actual, predicted_rate, price_bucket, "price_range")
     print(price_breakdown.to_string(index=False))
-    print()
+   
 
-    # --- Scatter plot: predicted vs actual ---
+    #  Scatter plot: predicted vs actual 
     plt.figure(figsize=(7, 7))
     plt.scatter(holdout_actual, predicted_rate, alpha=0.15, s=8, color="#2563eb")
     lims = [0, max(holdout_actual.max(), predicted_rate.max())]
