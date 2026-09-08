@@ -1,20 +1,7 @@
 """
-train_tune.py
+Holdout training & hyperparameter tuning.
 
-Step 4: Holdout training & hyperparameter tuning.
-
-Gives XGBoost a fair, properly-tuned shot against Random Forest (which won the
-untuned Step 3 comparison). Tuning priority follows the plan locked in earlier:
-  1. max_depth       - controls how specific/deep a tree can get
-  2. min_child_weight - stops leaves from forming around single rare rows/lanes
-  3. learning_rate + n_estimators + early_stopping_rounds, tuned together
-
-For each config we track BOTH train MAE and holdout MAE, not just holdout alone -
-a large gap between them is a red flag for overfitting even if the holdout number
-looks good.
-
-Random Forest gets a light tuning pass too (max_depth, min_samples_leaf) so the
-final comparison is apples-to-apples, not tuned-vs-untuned.
+Gives XGBoost a fair, properly-tuned shot against Random Forest 
 """
 
 import numpy as np
@@ -44,7 +31,7 @@ if __name__ == "__main__":
     holdout_distance = holdout_split["distance"]
     holdout_actual = holdout_split["posted_rate"].to_numpy()
 
-    # Stage 1: tune max_depth + min_child_weight (fixed learning_rate)
+    #  tune max_depth + min_child_weight (fixed learning_rate)
     results_stage1 = []
     for max_depth in [3, 4, 5, 6]:
         for min_child_weight in [1, 5, 10, 20]:
@@ -80,7 +67,7 @@ if __name__ == "__main__":
           f"min_child_weight={int(best_stage1.min_child_weight)}, "
           f"holdout MAE=${best_stage1.holdout_mae:,.2f}\n")
 
-    # Stage 2: tune learning_rate around the best max_depth/min_child_weight
+    #  tune learning_rate around the best max_depth/min_child_weight
     results_stage2 = []
     for lr in [0.01, 0.03, 0.05, 0.1]:
         model = XGBRegressor(
@@ -131,14 +118,9 @@ if __name__ == "__main__":
     xgb_train_mae, xgb_train_mape = dollar_metrics(final_xgb, train_X, train_distance, train_actual)
     xgb_hold_mae, xgb_hold_mape = dollar_metrics(final_xgb, holdout_X, holdout_distance, holdout_actual)
 
-    # ============================================================
-    # Random Forest - light tuning pass, for a fair comparison
-    # ============================================================
-    print("=== Random Forest: light tuning pass ===")
-    # NOTE: max_depth=None (fully unbounded trees) was tested and took ~110 seconds
-    # PER FIT on this dataset - far too slow for a grid search, and unbounded trees
-    # are also more prone to exactly the overfitting risk we're trying to avoid.
-    # Capping depth keeps this fast AND more defensible.
+   
+    print("Random Forest: light tuning pass ")
+
     rf_results = []
     for max_depth in [8, 10, 12, 16]:
         for min_samples_leaf in [1, 5, 10]:
@@ -169,7 +151,7 @@ if __name__ == "__main__":
     rf_hold_mae, rf_hold_mape = dollar_metrics(best_rf, holdout_X, holdout_distance, holdout_actual)
 
     # Final head-to-head
-    print("\n=== FINAL HEAD-TO-HEAD (tuned models, Sep-Oct holdout) ===")
+    print("\n (tuned models, Sep-Oct holdout) ")
     print(f"{'Model':25s} {'Train MAE':>12s} {'Holdout MAE':>13s} {'Holdout MAPE':>13s} {'Gap':>10s}")
     print(f"{'XGBoost (tuned)':25s} ${xgb_train_mae:10,.2f} ${xgb_hold_mae:11,.2f} {xgb_hold_mape:12.2f}% "
           f"${xgb_hold_mae - xgb_train_mae:8,.2f}")
