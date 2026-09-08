@@ -1,12 +1,11 @@
 """
-train_early.py
-
-Step 3: Early model testing (quick, rough pass).
+Early model testing (quick, rough pass).
 
 Purpose: confirm the end-to-end pipeline (clean_features.py -> model -> metrics)
 actually works, and get a first read on whether XGBoost/Random Forest/Linear
-Regression can beat the baseline. This is NOT the tuning step - default-ish
-hyperparameters are used here on purpose.
+Regression can beat the baseline. 
+
+This is NOT the tuning step - default-ish hyperparameters are used here on purpose.
 
 Trained on Jan-Aug, evaluated on the Sep-Oct holdout - same split as baseline.py,
 so results are directly comparable.
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     baseline_mae = mae(holdout_actual_rate, baseline_pred)
     baseline_mape = mape(holdout_actual_rate, baseline_pred)
 
-    print("=== Results on Sep-Oct holdout (predicting posted_rate, in dollars) ===")
+    print("Results on Sep-Oct holdout (predicting posted_rate)")
     print(f"{'Baseline (lane avg)':22s}  MAE: ${baseline_mae:8,.2f}   MAPE: {baseline_mape:6.2f}%")
 
     # Linear Regression
