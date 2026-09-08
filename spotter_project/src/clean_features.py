@@ -1,13 +1,10 @@
 """
-clean_features.py
-
 Shared data cleaning + feature engineering module 
 
 Design principle: every file (training data, holdout split, validation.csv,
 december_chart_inputs.csv) MUST go through the exact same transformations, using
 values (weight median, cluster centers, city lat/lon lookup) that were learned ONCE
-from training data and reused everywhere else. This avoids any inconsistency between
-how a feature is built during training vs. at prediction time.
+from training data and reused everywhere else.
 
 """
 
@@ -15,11 +12,7 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 
-# Fixed schema — always these 3 equipment types, regardless of what appears in a
-# given file. Guarantees validation/december outputs have identical columns even if
-# a category is rare or absent in that particular file.
 EQUIPMENT_CATEGORIES = ["Dry Van", "Reefer", "Flatbed"]
-
 N_REGION_CLUSTERS = 6
 RANDOM_STATE = 42
 
@@ -38,8 +31,6 @@ FEATURE_COLUMNS = [
 def _build_city_lookup(df: pd.DataFrame) -> dict:
     """
     Build a city name -> (lat, lon) lookup from any file that has coordinate columns.
-    Each city has one fixed lat/lon across all its appearances (verified during EDA),
-    so we can safely take the first occurrence of each city name.
     """
     lookup = {}
     if {"pickup", "pickup_lat", "pickup_lon"}.issubset(df.columns):
@@ -54,10 +45,9 @@ def _build_city_lookup(df: pd.DataFrame) -> dict:
 def _fill_missing_coords(df: pd.DataFrame, city_lookup: dict, fallback_latlon: tuple) -> pd.DataFrame:
     """
     Ensures pickup_lat/lon and delivery_lat/lon exist and are filled, using the city
-    lookup table when a file (like december_chart_inputs.csv) doesn't include
-    coordinate columns at all. Falls back to the overall average lat/lon for any city
-    that's genuinely never been seen before (safety net, not expected to trigger given
-    EDA confirmed December's cities are known).
+    lookup table when a file doesn't include coordinate columns at all. 
+    Falls back to the overall average lat/lon for any city 
+    that's genuinely never been seen before
     """
     df = df.copy()
 
@@ -65,8 +55,7 @@ def _fill_missing_coords(df: pd.DataFrame, city_lookup: dict, fallback_latlon: t
         lat_col, lon_col = f"{role}_lat", f"{role}_lon"
 
         if lat_col not in df.columns or lon_col not in df.columns:
-            # File has no coordinate columns at all (e.g. december_chart_inputs.csv)
-            # -> derive them entirely from the city name lookup.
+            # File has no coordinate columns at all 
             df[lat_col] = df[role].map(lambda c: city_lookup.get(c, fallback_latlon)[0])
             df[lon_col] = df[role].map(lambda c: city_lookup.get(c, fallback_latlon)[1])
         else:
@@ -113,18 +102,17 @@ def fit_transform(train_df: pd.DataFrame):
     """
     df = train_df.copy()
 
-    # --- learn artifacts ---
+    #learn artifacts 
     weight_median = df["weight"].abs().median()
     city_lookup = _build_city_lookup(df)
     fallback_latlon = (df["pickup_lat"].mean(), df["pickup_lon"].mean())
 
-    # --- apply cleaning ---
     df = _clean_weight(df, weight_median)
     df = _fill_missing_coords(df, city_lookup, fallback_latlon)
     df = _add_date_features(df)
     df = _one_hot_equipment(df)
 
-    # --- fit region clustering on training coordinates ---
+    # fit region clustering on training coordinates
     coords = pd.concat([
         df[["pickup_lat", "pickup_lon"]].rename(columns={"pickup_lat": "lat", "pickup_lon": "lon"}),
         df[["delivery_lat", "delivery_lon"]].rename(columns={"delivery_lat": "lat", "delivery_lon": "lon"}),
@@ -132,15 +120,9 @@ def fit_transform(train_df: pd.DataFrame):
     cluster_model = KMeans(n_clusters=N_REGION_CLUSTERS, random_state=RANDOM_STATE, n_init=10)
     cluster_model.fit(coords.to_numpy())
 
-    # region_cluster = midpoint of pickup/delivery clusters isn't meaningful; instead
-    # assign a cluster to pickup and delivery separately, then use pickup's cluster
-    # as a simple single "region_cluster" feature. (Delivery region is implicitly
-    # captured via delivery_lat/lon already being raw features.)
-    # .to_numpy() avoids sklearn's fitted-feature-name check, since we fit on
-    # generically-named "lat"/"lon" columns but predict on "pickup_lat"/"pickup_lon".
     df["region_cluster"] = cluster_model.predict(df[["pickup_lat", "pickup_lon"]].to_numpy())
 
-    # --- target ---
+    # target 
     df["rate_per_mile"] = df["posted_rate"] / df["distance"]
 
     artifacts = {
@@ -160,7 +142,7 @@ def fit_transform(train_df: pd.DataFrame):
 def transform(df: pd.DataFrame, artifacts: dict):
     """
     Applies the already-learned artifacts to a new file (holdout split, validation,
-    or december chart inputs). Never re-fits the median, lookup, or cluster model.
+    or december chart inputs). 
     """
     df = df.copy()
 
@@ -192,7 +174,7 @@ def _sanity_check(features: pd.DataFrame, name: str):
 
 
 if __name__ == "__main__":
-    # Quick self-test: run the pipeline across all 4 files and confirm schemas match.
+    # Quick self-test
     train_raw = pd.read_csv("data/train-test.csv")
     val_raw = pd.read_csv("data/validation.csv")
     dec_raw = pd.read_csv("data/december-chart-inputs.csv")
