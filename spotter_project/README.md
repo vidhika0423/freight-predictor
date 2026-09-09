@@ -12,7 +12,7 @@ After comprehensive exploration and error analysis, the final production model r
 ### Final Holdout Results (Sep-Oct)
 | Model | MAE | MAPE |
 |---|---|---|
-| Lane-average baseline | ~$350+ | — |
+| Lane-average baseline |  **$222.73** |  **9.64%** |
 | **EBM (production)** | **$109.65** | **4.85%** |
 
 ---
