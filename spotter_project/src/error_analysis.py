@@ -1,7 +1,7 @@
 """
 error_analysis.py
 
-Error analysis on the Sep-Oct holdout set using the production EBM model.
+Error analysis on the Sep-Oct holdout set.
 
 Breaks down MAE/MAPE by:
   - equipment type
@@ -12,6 +12,7 @@ Breaks down MAE/MAPE by:
 Produces a predicted-vs-actual scatter plot.
 
 Prerequisite: run src/train_ebm.py first to generate models/final_ebm_model.pkl
+(used here only for the labeled in-sample sanity check, not the headline metric)
 """
 
 import os
@@ -19,9 +20,11 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from interpret.glassbox import ExplainableBoostingRegressor
 
 from clean_features import fit_transform, transform
 from baseline import time_based_split, mae, mape
+from train_ebm import EBM_PARAMS
 
 
 def breakdown_by_group(actual, predicted, groups, label_name):
@@ -48,19 +51,34 @@ if __name__ == "__main__":
     holdout_distance = holdout_split["distance"]
     holdout_actual = holdout_split["posted_rate"].to_numpy()
 
-    # Load the production EBM model (trained on full Jan-Oct data)
-    with open("models/final_ebm_model.pkl", "rb") as f:
-        model = pickle.load(f)
+    # Honest holdout model: same tuned params as production, fit on Jan-Aug ONLY
+    train_X, train_y, train_meta, _ = fit_transform(train_split)
+    print("Training holdout-only EBM (same EBM_PARAMS as production, fit on Jan-Aug only)...")
+    model = ExplainableBoostingRegressor(**EBM_PARAMS)
+    model.fit(train_X, train_y)
 
     predicted_rpm = model.predict(holdout_X)
     predicted_rate = predicted_rpm * holdout_distance.to_numpy()
 
     overall_mae = mae(holdout_actual, predicted_rate)
     overall_mape = mape(holdout_actual, predicted_rate)
-    print(f"=== Overall holdout performance ===")
-    print(f"MAE: ${overall_mae:,.2f}   MAPE: {overall_mape:.2f}%\n")
+    print(f"\n Overall holdout performance (HONEST - fit on Jan-Aug only)")
+    print(f"MAE: ${overall_mae:,.2f}   MAPE: {overall_mape:.2f}%")
 
-    print("=== By equipment type ")
+    # Labeled sanity check only: the full-data production model scored on the same rows it was partly trained on. Expected to look better. Not a metric
+    try:
+        with open("models/final_ebm_model.pkl", "rb") as f:
+            production_model = pickle.load(f)
+        production_pred_rate = production_model.predict(holdout_X) * holdout_distance.to_numpy()
+        production_mae = mae(holdout_actual, production_pred_rate)
+        print(f"[in-sample sanity check, NOT a holdout metric] production model on the same "
+              f"rows: ${production_mae:,.2f}  this looks better only because those rows were "
+              f"inside its training data.\n")
+    except FileNotFoundError:
+        print("(Skipping in-sample sanity check: models/final_ebm_model.pkl not found — "
+              "run src/train_ebm.py first if you want to see it.)\n")
+
+    printBy equipment type ")
     equip_breakdown = breakdown_by_group(holdout_actual, predicted_rate,
                                           holdout_split["equipment"].to_numpy(), "equipment")
     print(equip_breakdown.to_string(index=False))
