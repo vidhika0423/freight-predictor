@@ -1,7 +1,5 @@
 """
-train_early.py
-
-Step 3: Early model testing (quick, rough pass).
+Early model testing (quick, rough pass).
 
 Purpose: confirm the end-to-end pipeline (clean_features.py -> model -> metrics)
 actually works, and get a first read on whether XGBoost/Random Forest/Linear

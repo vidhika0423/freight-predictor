@@ -44,7 +44,7 @@ if __name__ == "__main__":
     hold_dist = holdout_split["distance"]
     hold_act = holdout_split["posted_rate"].to_numpy()
 
-    # 1. Load or fit tuned XGBoost
+    # Load or fit tuned XGBoost
     xgb_model = XGBRegressor(
         n_estimators=141,
         learning_rate=0.03,
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     xgb_train_mae, _, _ = dollar_metrics(xgb_model, train_X, train_dist, train_act)
     xgb_hold_mae, xgb_hold_mape, xgb_hold_pred = dollar_metrics(xgb_model, holdout_X, hold_dist, hold_act)
 
-    # 2. Fit EBM on training split
+    # Fit EBM on training split
     from interpret.glassbox import ExplainableBoostingRegressor
     ebm_model = ExplainableBoostingRegressor(
         max_bins=256,
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     ebm_train_mae, _, _ = dollar_metrics(ebm_model, train_X, train_dist, train_act)
     ebm_hold_mae, ebm_hold_mape, ebm_hold_pred = dollar_metrics(ebm_model, holdout_X, hold_dist, hold_act)
 
-    # 3. Ensemble: 50/50 blend
+    # Ensemble: 50/50 blend
     ens_train_pred = (xgb_model.predict(train_X) * 0.5 + ebm_model.predict(train_X) * 0.5) * train_dist.to_numpy()
     ens_train_mae = mae(train_act, ens_train_pred)
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     print(f"{'EBM (production config)':25s} ${ebm_train_mae:10.2f} ${ebm_hold_mae:11.2f} {ebm_hold_mape:12.2f}% ${ebm_hold_mae - ebm_train_mae:8.2f}")
     print(f"{'Ensemble (50/50 Blend)':25s} ${ens_train_mae:10.2f} ${ens_hold_mae:11.2f} {ens_hold_mape:12.2f}% ${ens_hold_mae - ens_train_mae:8.2f}")
 
-    # 4. December extrapolation
+    # December extrapolation
     december_raw = pd.read_csv("data/december-chart-inputs.csv")
     dec_features, _, _ = transform(december_raw, artifacts)
 

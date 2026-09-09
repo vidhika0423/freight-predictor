@@ -48,7 +48,7 @@ if __name__ == "__main__":
     print(f"\nRange: ${output['predicted_rate'].min():,.2f} - ${output['predicted_rate'].max():,.2f}")
     print(f"Std deviation across the month: ${output['predicted_rate'].std():,.2f}")
 
-    # --- Plot ---
+    # Plot 
     dates = pd.to_datetime(output["date"])
     plt.figure(figsize=(10, 5))
     plt.plot(dates, output["predicted_rate"], marker="o", color="#94a3b8", linewidth=1.5)

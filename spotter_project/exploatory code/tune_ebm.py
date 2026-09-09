@@ -1,5 +1,4 @@
 """
-tune_ebm.py
 
 Systematic hyperparameter exploration for Explainable Boosting Machine (EBM).
 Matches the rigor of train_tune.py (XGBoost tuning) by evaluating:
