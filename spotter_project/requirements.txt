@@ -1,5 +1,6 @@
 matplotlib>=3.8
 numpy>=1.26
 pandas>=2.0
-scikit-learn 
+scikit-learn
 xgboost
+interpret            # ExplainableBoostingRegressor (EBM) for seasonal ensemble
